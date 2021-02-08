@@ -1,41 +1,64 @@
-version: 2.1
-
-orbs:
-  plugin-ci: mattermost/plugin-ci@volatile
-
+version: 2.0
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.14-node
+    working_directory: ~/mattermost-plugin-boilerplate
+    steps:
+      - checkout
+      - restore_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+      - type: shell
+        name: 'Checks the code style, tests, builds and bundles the plugin.'
+        command: make all
+        environment:
+          TERM: dumb
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
+      - store_artifacts:
+          path: ./dist
+          destination: build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+  release:
+    docker:
+      - image: cibuilds/github:0.12
+    working_directory: ~/mattermost-plugin-boilerplate
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} dist/
 workflows:
   version: 2
-  ci:
+  build:
     jobs:
-      - plugin-ci/lint:
-          filters:
-            tags:
-              only: /^v.*/
-      - plugin-ci/coverage:
-          filters:
-            tags:
-              only: /^v.*/
-      - plugin-ci/build:
-          filters:
-            tags:
-              only: /^v.*/
-      - plugin-ci/deploy-ci:
+      - build:
           filters:
             branches:
-              only: master
-          context: plugin-ci
-          requires:
-            - plugin-ci/lint
-            - plugin-ci/coverage
-            - plugin-ci/build
-      - plugin-ci/deploy-release-github:
-          filters:
+              only: /.*/
             tags:
-              only: /^v.*/
+              ignore: /.*/
+  build-and-release:
+    jobs:
+      - build:
+          filters:
             branches:
               ignore: /.*/
-          context: matterbuild-github-token
+            tags:
+              only: /.*/
+      - release:
           requires:
-            - plugin-ci/lint
-            - plugin-ci/coverage
-            - plugin-ci/build
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
