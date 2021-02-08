@@ -17,13 +17,13 @@ type Plugin struct {
 
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
-	configuration *configuration
-	linkRegex *regexp.Regexp
+	configuration         *configuration
+	linkRegex             *regexp.Regexp
 	allowedProtocolsRegex *regexp.Regexp
 }
 
 func (p *Plugin) OnActivate() error {
-	regexString :=`\[(?P<text>.*?)\]\((?P<protocol>\w+)://(?P<host>[^\n)]+)?\)`
+	regexString := `\[(?P<text>.*?)\]\((?P<protocol>\w+)://(?P<host>[^\n)]+)?\)`
 	regex, err := regexp.Compile(regexString)
 	if err != nil {
 		return err
