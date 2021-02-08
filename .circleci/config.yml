@@ -3,7 +3,7 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.14-node
-    working_directory: ~/mattermost-plugin-boilerplate
+    working_directory: ~/mattermost-plugin-link-filter
     steps:
       - checkout
       - restore_cache:
