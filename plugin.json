@@ -1,0 +1,34 @@
+{
+  "id": "mattermost-plugin-link-filter",
+  "name": "Embedded Link Filter",
+  "version": "1.0.0",
+  "min_server_version": "5.2.0",
+  "server": {
+    "executables": {
+      "linux-amd64": "server/dist/plugin-linux-amd64",
+      "darwin-amd64": "server/dist/plugin-darwin-amd64",
+      "windows-amd64": "server/dist/plugin-windows-amd64.exe"
+    }
+  },
+  "settings_schema": {
+    "settings": [
+      {
+        "key": "WarningMessage",
+        "display_name": "Warning Message:",
+        "type": "text",
+        "help_text": "If Post is enabled, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL in the message. Markdown formatted.",
+        "placeholder": "E.g., Your post has been rejected by the Link Filter, because the following URL is not allowed: `%s`.",
+        "default": "Your post has been rejected by the Link Filter, because the following URL is not allowed: `%s`."
+      },
+      {
+        "key": "AllowedProtocolList",
+        "display_name": "Allowed Protocols List:",
+        "type": "longtext",
+        "help_text": "The protocols to allow, separated by commas. Capitalization and punctuation insensitive.",
+        "placeholder": "E.g., http, https, mailto, mattermost"
+      }
+    ],
+    "header": "",
+    "footer": ""
+  }
+}
