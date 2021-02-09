@@ -32,7 +32,7 @@
         "type": "text",
         "help_text": "The protocols to allow, separated by commas. Capitalization and punctuation insensitive.",
         "placeholder": "E.g., http, https, mailto, mattermost",
-        "default": "http,https"
+        "default": "http,https,mailto,mattermost"
       }
     ],
     "header": "",

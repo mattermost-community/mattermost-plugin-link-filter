@@ -24,15 +24,23 @@ type Plugin struct {
 	allowedProtocolsRegex *regexp.Regexp
 }
 
+const (
+	// Following regex would match links embedded with texts in markdown
+	// e.g. [test](https://www.github.com)
+	EmbeddedLinkRegexString = `\[(?P<text>.*?)\]\((?P<protocol>\w+)://(?P<host>[^\n)]+)?\)`
+
+	// Following regex would match links
+	// e.g. https://github.com
+	PlainLinkRegexString = `(?P<protocol>\w+)://(?P<host>[^\n)]+)?`
+)
+
 func (p *Plugin) OnActivate() error {
-	regexString := `\[(?P<text>.*?)\]\((?P<protocol>\w+)://(?P<host>[^\n)]+)?\)`
-	embeddedLinkRegex, err := regexp.Compile(regexString)
+	embeddedLinkRegex, err := regexp.Compile(EmbeddedLinkRegexString)
 	if err != nil {
 		return err
 	}
 
-	regexString = `(?P<protocol>\w+)://(?P<host>[^\n)]+)?`
-	plainLinkRegex, err := regexp.Compile(regexString)
+	plainLinkRegex, err := regexp.Compile(PlainLinkRegexString)
 	if err != nil {
 		return err
 	}
@@ -60,14 +68,18 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		// [2-3] start and end position of "text"
 		// [4-5] start and end position of "protocol"
 		// [6-7] start and end position of "host"
-		protocol := string(postText[loc[4]:loc[5]])
+		protocolStartIndex := loc[4]
+		procolEndIndex := loc[5]
 
 		// The case when detected url has length 6 i.e., the url is plain link
 		// then the detected url will have no "text" and
 		// start and end position of "protocol" will be 2-3 and not 4-5
 		if len(loc) == 6 {
-			protocol = string(postText[loc[2]:loc[3]])
+			protocolStartIndex = loc[2]
+			procolEndIndex = loc[3]
 		}
+
+		protocol := string(postText[protocolStartIndex:procolEndIndex])
 		_, ok := set[protocol]
 		if !ok && (len(configuration.AllowedProtocolList) == 0 || !p.allowedProtocolsRegex.MatchString(protocol)) {
 			invalidURLProtocols = append(invalidURLProtocols, protocol)
