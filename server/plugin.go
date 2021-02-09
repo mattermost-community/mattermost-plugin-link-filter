@@ -52,6 +52,7 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		detectedURLs = append(detectedURLs, plainLinks...)
 	}
 	var invalidURLProtocols []string
+	set := make(map[string]bool)
 
 	for _, loc := range detectedURLs {
 		// loc contains the index of relevant groups
@@ -67,8 +68,10 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		if len(loc) == 6 {
 			protocol = string(postText[loc[2]:loc[3]])
 		}
-		if len(configuration.AllowedProtocolList) == 0 || !p.allowedProtocolsRegex.MatchString(protocol) {
+		_, ok := set[protocol]
+		if !ok && (len(configuration.AllowedProtocolList) == 0 || !p.allowedProtocolsRegex.MatchString(protocol)) {
 			invalidURLProtocols = append(invalidURLProtocols, protocol)
+			set[protocol] = true
 		}
 	}
 

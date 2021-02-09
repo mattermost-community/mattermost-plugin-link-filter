@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/Brightscout/mattermost-plugin-link-filter/server/util"
 )
 
 // configuration captures the plugin's external configuration as exposed in the Mattermost server
@@ -99,7 +101,7 @@ func (p *Plugin) OnConfigurationChange() error {
 
 func wordListToRegex(wordList string) (regexStr string) {
 	split := strings.Split(wordList, ",")
-
+	split = util.TrimString(split)
 	regexStr = fmt.Sprintf(
 		`(?mi)\b(%s)\b`,
 		strings.Join(split, "|"),
