@@ -16,8 +16,8 @@
         "key": "WarningMessage",
         "display_name": "Warning Message:",
         "type": "text",
-        "help_text": "If Post is enabled, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL in the message. Markdown formatted.",
-        "placeholder": "E.g., Your post has been rejected by the Link Filter, because the following URL is not allowed: `%s`.",
+        "help_text": "If post is rejected, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL in the message.",
+        "placeholder": "E.g., Your post has been rejected by the Link Filter, because the following URL Scheme is not allowed: `%s`.",
         "default": "Your post has been rejected by the Link Filter, because the following URL is not allowed: `%s`."
       },
       {
@@ -25,7 +25,8 @@
         "display_name": "Allowed Protocols List:",
         "type": "longtext",
         "help_text": "The protocols to allow, separated by commas. Capitalization and punctuation insensitive.",
-        "placeholder": "E.g., http, https, mailto, mattermost"
+        "placeholder": "E.g., http, https, mailto, mattermost",
+        "default": "http,https"
       }
     ],
     "header": "",
