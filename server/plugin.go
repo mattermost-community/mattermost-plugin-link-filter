@@ -53,14 +53,14 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 
 	if len(invalidURLProtocols) == 0 {
 		return post, ""
-	} else {
-		p.API.SendEphemeralPost(post.UserId, &model.Post{
-			ChannelId: post.ChannelId,
-			Message:   fmt.Sprintf(configuration.WarningMessage, strings.Join(invalidURLProtocols, ", ")),
-			RootId:    post.RootId,
-		})
-		return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 	}
+
+	p.API.SendEphemeralPost(post.UserId, &model.Post{
+		ChannelId: post.ChannelId,
+		Message:   fmt.Sprintf(configuration.WarningMessage, strings.Join(invalidURLProtocols, ", ")),
+		RootId:    post.RootId,
+	})
+	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 }
 
 func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*model.Post, string) {
