@@ -21,7 +21,7 @@
       {
         "key": "WarningMessage",
         "display_name": "Warning Message:",
-        "type": "text",
+        "type": "longtext",
         "help_text": "If post is rejected, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL Scheme in the message.",
         "placeholder": "E.g., Your post has been rejected by the Link Filter, because the following URL Scheme is not allowed: `%s`.",
         "default": "Your post has been rejected by the Link Filter, because the following URL Scheme is not allowed: `%s`."
