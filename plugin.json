@@ -29,7 +29,7 @@
       {
         "key": "AllowedProtocolList",
         "display_name": "Allowed Protocols List:",
-        "type": "longtext",
+        "type": "text",
         "help_text": "The protocols to allow, separated by commas. Capitalization and punctuation insensitive.",
         "placeholder": "E.g., http, https, mailto, mattermost",
         "default": "http,https"
