@@ -11,6 +11,13 @@ This plugin allows you to filter links on your Mattermost server. The plugin che
 
 ### Usage
 
-You can edit the allowed portocol list in **System Console > Plugins > Profanity Filter > Allowed Protocols list**.
+You can edit the plugin configuration in **System Console > Plugins > Embedded Link Filter***
+* **Allowed Protocols list**.<br>
+  This denotes the list of protocols to allow, separated by commas.<br/>
+ For example, `http,https` will allow messages with links like `https://github.com` or `http://github.com` but reject posts containing links like `s3://YourS3Bucket/dir/filename.filetype`.
 
-For example, `http,https` will allow messages with links like `https://github.com` or `http://github.com` but reject posts containing links like `s3://YourS3Bucket/dir/filename.filetype`.
+* **Warning Message**.<br>
+  This denotes the message that is shown when a post is rejected.
+
+* **Reject Plain Links**.<br>
+  This is a boolean option. If set the plugin will also filter posts containing plain text links like `http://www.google.com` in addition to filtering embedded text links.
