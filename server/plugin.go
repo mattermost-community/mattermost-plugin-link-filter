@@ -50,7 +50,7 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
+func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string) {
 	configuration := p.getConfiguration()
 
 	postText := []byte(post.Message)
@@ -91,20 +91,25 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		return post, ""
 	}
 
+	WarningMessage := configuration.NewPostWarningMessage
+	if isEdit {
+		WarningMessage = configuration.EditPostWarningMessage
+	}
+	fmt.Println("here",WarningMessage)
 	p.API.SendEphemeralPost(post.UserId, &model.Post{
 		ChannelId: post.ChannelId,
-		Message:   fmt.Sprintf(configuration.WarningMessage, strings.Join(invalidURLProtocols, ", ")),
+		Message:   fmt.Sprintf(WarningMessage, strings.Join(invalidURLProtocols, ", ")),
 		RootId:    post.RootId,
 	})
 	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 }
 
 func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*model.Post, string) {
-	return p.FilterPost(post)
+	return p.FilterPost(post, false)
 }
 
 func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, oldPost *model.Post) (*model.Post, string) {
-	post, err := p.FilterPost(newPost)
+	post, err := p.FilterPost(newPost, true)
 	if post == nil {
 		return oldPost, err
 	}

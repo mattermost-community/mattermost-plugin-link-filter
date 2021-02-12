@@ -19,12 +19,20 @@
         "help_text": "If set the plugin will also filter posts containing plain text links in addition to filtering embedded text links."
       },
       {
-        "key": "WarningMessage",
-        "display_name": "Warning Message:",
+        "key": "NewPostWarningMessage",
+        "display_name": "New Post Warning Message:",
         "type": "longtext",
-        "help_text": "If post is rejected, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL Scheme in the message.",
+        "help_text": "If a new post is rejected, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL Scheme in the message.",
         "placeholder": "E.g., Your post has been rejected by the Link Filter because the following URL Scheme is not allowed: `%s`.",
         "default": "Your post has been rejected by the Link Filter because the following URL Scheme is not allowed: `%s`."
+      },
+      {
+        "key": "EditPostWarningMessage",
+        "display_name": "Modified Post Warning Message:",
+        "type": "longtext",
+        "help_text": "If an existing post is modified and gets rejected, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL Scheme in the message.",
+        "placeholder": "E.g., Your edit has been rejected by the Link Filter because the following URL Scheme is not allowed: `%s`.",
+        "default": "Your edit has been rejected by the Link Filter because the following URL Scheme is not allowed: `%s`."
       },
       {
         "key": "AllowedProtocolList",
