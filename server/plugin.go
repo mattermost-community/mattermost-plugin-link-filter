@@ -103,6 +103,10 @@ func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*mode
 	return p.FilterPost(post)
 }
 
-func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, _ *model.Post) (*model.Post, string) {
-	return p.FilterPost(newPost)
+func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, oldPost *model.Post) (*model.Post, string) {
+	post, err := p.FilterPost(newPost)
+	if post == nil {
+		return oldPost, err
+	}
+	return post, err
 }
