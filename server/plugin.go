@@ -32,6 +32,8 @@ const (
 	// Following regex would match links
 	// e.g. https://github.com
 	PlainLinkRegexString = `(?P<protocol>\w+)://(?P<host>[^\n)]+)?`
+
+	InvalidURLSchemeMessage = "\nFollowing URL Scheme is not allowed: `%s`"
 )
 
 func (p *Plugin) OnActivate() error {
@@ -95,10 +97,10 @@ func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string)
 	if isEdit {
 		WarningMessage = configuration.EditPostWarningMessage
 	}
-
+	WarningMessage += fmt.Sprintf(InvalidURLSchemeMessage, strings.Join(invalidURLProtocols, ", "))
 	p.API.SendEphemeralPost(post.UserId, &model.Post{
 		ChannelId: post.ChannelId,
-		Message:   fmt.Sprintf(WarningMessage, strings.Join(invalidURLProtocols, ", ")),
+		Message:   WarningMessage,
 		RootId:    post.RootId,
 	})
 	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
