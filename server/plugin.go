@@ -95,7 +95,7 @@ func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string)
 	if isEdit {
 		WarningMessage = configuration.EditPostWarningMessage
 	}
-	fmt.Println("here",WarningMessage)
+
 	p.API.SendEphemeralPost(post.UserId, &model.Post{
 		ChannelId: post.ChannelId,
 		Message:   fmt.Sprintf(WarningMessage, strings.Join(invalidURLProtocols, ", ")),
