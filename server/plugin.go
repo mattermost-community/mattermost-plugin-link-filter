@@ -32,6 +32,8 @@ const (
 	// Following regex would match links
 	// e.g. https://github.com
 	PlainLinkRegexString = `(?P<protocol>\w+)://(?P<host>[^\n)]+)?`
+
+	InvalidURLSchemeMessage = "\nFollowing URL Scheme is not allowed: `%s`"
 )
 
 func (p *Plugin) OnActivate() error {
@@ -50,7 +52,7 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
+func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string) {
 	configuration := p.getConfiguration()
 
 	postText := []byte(post.Message)
@@ -91,18 +93,27 @@ func (p *Plugin) FilterPost(post *model.Post) (*model.Post, string) {
 		return post, ""
 	}
 
+	WarningMessage := configuration.CreatePostWarningMessage
+	if isEdit {
+		WarningMessage = configuration.EditPostWarningMessage
+	}
+	WarningMessage += fmt.Sprintf(InvalidURLSchemeMessage, strings.Join(invalidURLProtocols, ", "))
 	p.API.SendEphemeralPost(post.UserId, &model.Post{
 		ChannelId: post.ChannelId,
-		Message:   fmt.Sprintf(configuration.WarningMessage, strings.Join(invalidURLProtocols, ", ")),
+		Message:   WarningMessage,
 		RootId:    post.RootId,
 	})
 	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 }
 
 func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*model.Post, string) {
-	return p.FilterPost(post)
+	return p.FilterPost(post, false)
 }
 
-func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, _ *model.Post) (*model.Post, string) {
-	return p.FilterPost(newPost)
+func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, oldPost *model.Post) (*model.Post, string) {
+	post, err := p.FilterPost(newPost, true)
+	if err != "" {
+		return oldPost, err
+	}
+	return post, err
 }
