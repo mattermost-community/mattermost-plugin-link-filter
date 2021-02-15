@@ -19,7 +19,7 @@
         "help_text": "If set the plugin will also filter posts containing plain text links in addition to filtering embedded text links."
       },
       {
-        "key": "NewPostWarningMessage",
+        "key": "CreatePostWarningMessage",
         "display_name": "New Post Warning Message:",
         "type": "longtext",
         "help_text": "If a new post is rejected, this warning message will be sent to the user. Place `%s` where you want to include the forbidden URL Scheme in the message.",

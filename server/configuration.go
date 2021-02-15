@@ -25,7 +25,7 @@ import (
 type configuration struct {
 	RejectPlainLinks       bool
 	AllowedProtocolList    string
-	NewPostWarningMessage  string
+	CreatePostWarningMessage  string
 	EditPostWarningMessage string
 }
 

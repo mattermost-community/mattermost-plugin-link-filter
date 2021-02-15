@@ -93,7 +93,7 @@ func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string)
 		return post, ""
 	}
 
-	WarningMessage := configuration.NewPostWarningMessage
+	WarningMessage := configuration.CreatePostWarningMessage
 	if isEdit {
 		WarningMessage = configuration.EditPostWarningMessage
 	}
