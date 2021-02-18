@@ -27,7 +27,7 @@ type Plugin struct {
 const (
 	// Following regex would match links embedded with texts in markdown
 	// e.g. [test](https://www.github.com)
-	EmbeddedLinkRegexString = `\[(?P<text>.*?)\]\((?P<protocol>\w+)://(?P<host>[^\n)]+)?\)`
+	EmbeddedLinkRegexString = `\[(?P<text>.*?)\]\((?P<protocol>\w+):(?P<host>[^\n)]+)?\)`
 
 	// Following regex would match links
 	// e.g. https://github.com
