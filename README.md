@@ -1,4 +1,6 @@
 # Mattermost Plugin Link Filter
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter?ref=badge_shield)
+
 
 This plugin allows you to filter links on your Mattermost server. The plugin checks all links in messages for matches against the configured `Allowed Protocols list`.
 
@@ -24,3 +26,7 @@ You can edit the plugin configuration in **System Console > Plugins > Embedded L
 
 * **Reject Plain Links**.<br>
   This is a boolean option. If set the plugin will also filter posts containing plain text links like `http://www.google.com` in addition to filtering embedded text links.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter?ref=badge_large)
