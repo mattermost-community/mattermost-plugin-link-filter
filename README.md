@@ -24,3 +24,9 @@ You can edit the plugin configuration in **System Console > Plugins > Embedded L
 
 * **Reject Plain Links**.<br>
   This is a boolean option. If set the plugin will also filter posts containing plain text links like `http://www.google.com` in addition to filtering embedded text links.
+
+## License
+
+This repository is under the [MIT License](https://github.com/Brightscout/mattermost-plugin-link-filter/blob/main/LICENSE).
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter?ref=badge_large)
