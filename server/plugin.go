@@ -52,7 +52,7 @@ func (p *Plugin) OnActivate() error {
 	return nil
 }
 
-func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string) {
+func (p *Plugin) getInvalidURLs(post *model.Post) []string {
 	configuration := p.getConfiguration()
 
 	postText := []byte(post.Message)
@@ -89,6 +89,13 @@ func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string)
 		}
 	}
 
+	return invalidURLProtocols
+}
+
+func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string) {
+	configuration := p.getConfiguration()
+
+	invalidURLProtocols := p.getInvalidURLs(post)
 	if len(invalidURLProtocols) == 0 {
 		return post, ""
 	}
