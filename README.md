@@ -1,6 +1,6 @@
 # Mattermost Plugin Link Filter
 
-This plugin allows you to filter links on your Mattermost server. The plugin checks all links in messages for matches against the configured `Allowed Protocols list`.
+This plugin allows you to filter / surpress links in posts on your Mattermost server. The plugin compares all links in new posts against a configured `Allowed Protocols list`. If the protocol (http, https, s3, etc). is not present in the white list, the post will be removed.
 
 ## Installation
 
@@ -23,10 +23,15 @@ You can edit the plugin configuration in **System Console > Plugins > Embedded L
   This denotes the message that is shown when an existing post is modified and gets rejected.
 
 * **Reject Plain Links**.<br>
-  This is a boolean option. If set the plugin will also filter posts containing plain text links like `http://www.google.com` in addition to filtering embedded text links.
+  This is a boolean option. If set, the plugin will also filter posts containing plain text links like `http://www.google.com` in addition to filtering embedded text links.
 
 ## License
 
 This repository is under the [MIT License](https://github.com/Brightscout/mattermost-plugin-link-filter/blob/main/LICENSE).
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter?ref=badge_large)
+
+
+---
+
+Made with &#9829; by [Brightscout](http://www.brightscout.com)
