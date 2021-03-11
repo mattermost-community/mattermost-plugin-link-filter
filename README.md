@@ -27,7 +27,7 @@ You can edit the plugin configuration in **System Console > Plugins > Embedded L
 
 ## License
 
-This repository is under the [MIT License](https://github.com/Brightscout/mattermost-plugin-link-filter/blob/main/LICENSE).
+This repository is under the [Apache 2.0 License](https://github.com/mattermost/mattermost-plugin-link-filter/blob/main/LICENSE).
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBrightscout%2Fmattermost-plugin-link-filter?ref=badge_large)
 
