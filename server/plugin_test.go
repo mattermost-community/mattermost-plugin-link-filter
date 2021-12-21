@@ -12,13 +12,15 @@ import (
 func TestGetInvalidURLs(t *testing.T) {
 	p := Plugin{
 		configuration: &configuration{
-			RejectPlainLinks:        true,
-			AllowedProtocolListLink: "http,https,mailto",
+			RejectPlainLinks:             true,
+			AllowedProtocolListLink:      "http,https,mailto",
+			AllowedProtocolListPlainText: "http,https,mailto",
 		},
 	}
 	p.plainLinkRegex = regexp.MustCompile(PlainLinkRegexString)
 	p.embeddedLinkRegex = regexp.MustCompile(EmbeddedLinkRegexString)
 	p.allowedProtocolsRegexLink = regexp.MustCompile(wordListToRegex(p.getConfiguration().AllowedProtocolListLink))
+	p.allowedProtocolsRegexPlainText = regexp.MustCompile(wordListToRegex(p.getConfiguration().AllowedProtocolListPlainText))
 
 	t.Run("link protocol matches allowed protocol list", func(t *testing.T) {
 		in := &model.Post{
