@@ -18,10 +18,11 @@ type Plugin struct {
 
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
-	configuration         *configuration
-	embeddedLinkRegex     *regexp.Regexp
-	plainLinkRegex        *regexp.Regexp
-	allowedProtocolsRegex *regexp.Regexp
+	configuration                  *configuration
+	embeddedLinkRegex              *regexp.Regexp
+	plainLinkRegex                 *regexp.Regexp
+	allowedProtocolsRegexLink      *regexp.Regexp
+	allowedProtocolsRegexPlainText *regexp.Regexp
 }
 
 const (
@@ -72,6 +73,7 @@ func (p *Plugin) getInvalidURLs(post *model.Post) []string {
 		// [6-7] start and end position of "host"
 		protocolStartIndex := loc[4]
 		procolEndIndex := loc[5]
+		isPlainText := false
 
 		// The case when detected url has length 6 i.e., the url is plain link
 		// then the detected url will have no "text" and
@@ -79,11 +81,16 @@ func (p *Plugin) getInvalidURLs(post *model.Post) []string {
 		if len(loc) == 6 {
 			protocolStartIndex = loc[2]
 			procolEndIndex = loc[3]
+			isPlainText = true
 		}
 
 		protocol := string(postText[protocolStartIndex:procolEndIndex])
 		_, ok := set[protocol]
-		if !ok && (len(configuration.AllowedProtocolList) == 0 || !p.allowedProtocolsRegex.MatchString(protocol)) {
+		if !ok && !isPlainText && (len(configuration.AllowedProtocolListLink) == 0 || !p.allowedProtocolsRegexLink.MatchString(protocol)) {
+			invalidURLProtocols = append(invalidURLProtocols, protocol)
+			set[protocol] = true
+		}
+		if !ok && isPlainText && (len(configuration.AllowedProtocolListPlainText) == 0 || !p.allowedProtocolsRegexPlainText.MatchString(protocol)) {
 			invalidURLProtocols = append(invalidURLProtocols, protocol)
 			set[protocol] = true
 		}

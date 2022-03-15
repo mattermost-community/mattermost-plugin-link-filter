@@ -1,7 +1,7 @@
 {
   "id": "mattermost-plugin-link-filter",
   "name": "Embedded Link Filter",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "min_server_version": "5.2.0",
   "server": {
     "executables": {
@@ -35,10 +35,18 @@
         "default": "Your edit has been rejected by the Link Filter."
       },
       {
-        "key": "AllowedProtocolList",
-        "display_name": "Allowed Protocols List:",
+        "key": "AllowedProtocolListLink",
+        "display_name": "Allowed Protocols List (Link):",
         "type": "text",
-        "help_text": "The protocols to allow, separated by commas. Capitalization and punctuation insensitive.",
+        "help_text": "The protocols to allow in a link, separated by commas. Capitalization and punctuation insensitive.",
+        "placeholder": "E.g., http, https, mailto, mattermost",
+        "default": "http,https,mailto,mattermost"
+      },
+      {
+        "key": "AllowedProtocolListPlainText",
+        "display_name": "Allowed Protocols List (Plain Text):",
+        "type": "text",
+        "help_text": "The protocols to allow in plain text, separated by commas. Capitalization and punctuation insensitive.",
         "placeholder": "E.g., http, https, mailto, mattermost",
         "default": "http,https,mailto,mattermost"
       }

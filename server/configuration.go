@@ -23,10 +23,11 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	RejectPlainLinks         bool
-	AllowedProtocolList      string
-	CreatePostWarningMessage string
-	EditPostWarningMessage   string
+	RejectPlainLinks             bool
+	AllowedProtocolListLink      string
+	AllowedProtocolListPlainText string
+	CreatePostWarningMessage     string
+	EditPostWarningMessage       string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -88,14 +89,21 @@ func (p *Plugin) OnConfigurationChange() error {
 
 	p.setConfiguration(configuration)
 
-	// Addind space around the words
-	regexString := wordListToRegex(configuration.AllowedProtocolList)
-	regex, err := regexp.Compile(regexString)
+	// Addind space around the words (Link)
+	regexStringLink := wordListToRegex(configuration.AllowedProtocolListLink)
+	regexLink, err := regexp.Compile(regexStringLink)
 	if err != nil {
 		return err
 	}
+	p.allowedProtocolsRegexLink = regexLink
 
-	p.allowedProtocolsRegex = regex
+	// Addind space around the words (Plain Text)
+	regexStringPlainText := wordListToRegex(configuration.AllowedProtocolListPlainText)
+	regexPlainText, err := regexp.Compile(regexStringPlainText)
+	if err != nil {
+		return err
+	}
+	p.allowedProtocolsRegexPlainText = regexPlainText
 
 	return nil
 }

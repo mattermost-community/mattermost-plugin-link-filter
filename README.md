@@ -14,9 +14,10 @@ This plugin allows you to filter / surpress links in posts on your Mattermost se
 ### Usage
 
 You can edit the plugin configuration in **System Console > Plugins > Embedded Link Filter***
-* **Allowed Protocols list**<br>
-  This denotes the list of protocols to allow, separated by commas.<br/>
+* **Allowed Protocols lists**<br>
+ This denotes the list of protocols to allow, separated by commas.<br/>
  For example, `http,https` will allow messages with links like `https://github.com` or `http://github.com` but reject posts containing links like `s3://YourS3Bucket/dir/filename.filetype`.
+ One list allows for [formatted links](https://docs.mattermost.com/messaging/formatting-text.html#links) the other allows for plain text links.
 
 * **New Post Warning Message**<br>
   This denotes the message that is shown when a new post is created and gets rejected.
