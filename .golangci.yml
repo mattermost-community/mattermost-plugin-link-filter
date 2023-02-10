@@ -10,8 +10,6 @@ linters-settings:
     simplify: true
   goimports:
     local-prefixes: github.com/Brightscout/mattermost-plugin-link-filter
-  golint:
-    min-confidence: 0
   govet:
     check-shadowing: true
     enable-all: true
@@ -22,27 +20,23 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - errcheck
     - goconst
     - gocritic
     - gofmt
     - goimports
-    - golint
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - misspell
     - nakedret
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
+    - revive
     - unused
-    - varcheck
     - whitespace
 
 issues:
@@ -51,7 +45,6 @@ issues:
       linters:
         - deadcode
         - unused
-        - varcheck
     - path: server/configuration.go
       linters:
         - unused

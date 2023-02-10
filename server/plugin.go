@@ -13,9 +13,6 @@ import (
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	// configurationLock synchronizes access to the configuration.
-	configurationLock sync.RWMutex
-
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration                  *configuration
@@ -23,6 +20,9 @@ type Plugin struct {
 	plainLinkRegex                 *regexp.Regexp
 	allowedProtocolsRegexLink      *regexp.Regexp
 	allowedProtocolsRegexPlainText *regexp.Regexp
+
+	// configurationLock synchronizes access to the configuration.
+	configurationLock sync.RWMutex
 }
 
 const (
@@ -38,15 +38,9 @@ const (
 )
 
 func (p *Plugin) OnActivate() error {
-	embeddedLinkRegex, err := regexp.Compile(EmbeddedLinkRegexString)
-	if err != nil {
-		return err
-	}
+	embeddedLinkRegex := regexp.MustCompile(EmbeddedLinkRegexString)
 
-	plainLinkRegex, err := regexp.Compile(PlainLinkRegexString)
-	if err != nil {
-		return err
-	}
+	plainLinkRegex := regexp.MustCompile(PlainLinkRegexString)
 
 	p.embeddedLinkRegex = embeddedLinkRegex
 	p.plainLinkRegex = plainLinkRegex
