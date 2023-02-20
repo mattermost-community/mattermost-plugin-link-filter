@@ -38,15 +38,9 @@ const (
 )
 
 func (p *Plugin) OnActivate() error {
-	embeddedLinkRegex, err := regexp.Compile(EmbeddedLinkRegexString)
-	if err != nil {
-		return err
-	}
+	embeddedLinkRegex := regexp.MustCompile(EmbeddedLinkRegexString)
 
-	plainLinkRegex, err := regexp.Compile(PlainLinkRegexString)
-	if err != nil {
-		return err
-	}
+	plainLinkRegex := regexp.MustCompile(PlainLinkRegexString)
 
 	p.embeddedLinkRegex = embeddedLinkRegex
 	p.plainLinkRegex = plainLinkRegex
