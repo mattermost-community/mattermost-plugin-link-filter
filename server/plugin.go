@@ -13,6 +13,9 @@ import (
 type Plugin struct {
 	plugin.MattermostPlugin
 
+	// configurationLock synchronizes access to the configuration.
+	configurationLock sync.RWMutex
+
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration                  *configuration
@@ -20,9 +23,6 @@ type Plugin struct {
 	plainLinkRegex                 *regexp.Regexp
 	allowedProtocolsRegexLink      *regexp.Regexp
 	allowedProtocolsRegexPlainText *regexp.Regexp
-
-	// configurationLock synchronizes access to the configuration.
-	configurationLock sync.RWMutex
 }
 
 const (
