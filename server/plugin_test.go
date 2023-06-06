@@ -1,7 +1,6 @@
 package main
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,60 +8,143 @@ import (
 	"github.com/mattermost/mattermost-server/v5/model"
 )
 
-func TestGetInvalidURLs(t *testing.T) {
-	p := Plugin{
-		configuration: &configuration{
-			RejectPlainLinks:             true,
-			AllowedProtocolListLink:      "http,https,mailto",
-			AllowedProtocolListPlainText: "http,https,mailto",
+func TestGetInvalidURLsWithPlainLinks(t *testing.T) {
+	p := newTestPlugin(true, "http,https,mailto", "http,https,mailto")
+
+	var tests = []struct {
+		name         string
+		in           *model.Post
+		expectedURLs []string
+	}{
+		{
+			name: "allowed embedded links are allowed",
+			in: &model.Post{
+				Message: "[test](https://www.github.com)",
+			},
+			expectedURLs: []string{},
+		},
+		{
+			name: "non-allowed embedded links are rejected",
+			in: &model.Post{
+				Message: "[test](s3://www.github.com)",
+			},
+			expectedURLs: []string{"s3"},
+		},
+		{
+			name: "non-allowed embedded links are rejected with multiple embedded links",
+			in: &model.Post{
+				Message: "[test](s3://www.github.com) [test](s4://www.github.com) [test](s3://www.github.com)",
+			},
+			expectedURLs: []string{"s3", "s4"},
+		},
+		{
+			name: "non-allowed embedded links are rejected with multiple links and plain links",
+			in: &model.Post{
+				Message: "s3://www.github.com [test](s4://www.github.com)",
+			},
+			expectedURLs: []string{"s3", "s4"},
+		},
+		{
+			name: "non-allowed embedded links are rejected with multiple links and plain links",
+			in: &model.Post{
+				Message: "https://www.github.com [test](s3://www.github.com)",
+			},
+			expectedURLs: []string{"s3"},
+		},
+		{
+			name: "non-allowed plain with double slashes links are rejected",
+			in: &model.Post{
+				Message: "tel://999999999",
+			},
+			expectedURLs: []string{"tel"},
+		},
+		{
+			name: "non-allowed plain without double slashes links are rejected",
+			in: &model.Post{
+				Message: "tel:999999999",
+			},
+			expectedURLs: []string{"tel"},
+		},
+		{
+			name: "non-allowed embedded links without double slashes are rejected",
+			in: &model.Post{
+				Message: "[+999999999](tel:+999999999)",
+			},
+			expectedURLs: []string{"tel"},
+		},
+		{
+			name: "allowed embedded links without double slashes are allowed",
+			in: &model.Post{
+				Message: "[plugin@example.com](mailto:plugin@example.com)",
+			},
+			expectedURLs: []string{},
+		},
+		{
+			name: "allowed embedded links with double slashes are allowed",
+			in: &model.Post{
+				Message: "[plugin@example.com](mailto://plugin@example.com)",
+			},
+			expectedURLs: []string{},
 		},
 	}
-	p.plainLinkRegex = regexp.MustCompile(PlainLinkRegexString)
-	p.embeddedLinkRegex = regexp.MustCompile(EmbeddedLinkRegexString)
-	p.allowedProtocolsRegexLink = regexp.MustCompile(wordListToRegex(p.getConfiguration().AllowedProtocolListLink))
-	p.allowedProtocolsRegexPlainText = regexp.MustCompile(wordListToRegex(p.getConfiguration().AllowedProtocolListPlainText))
 
-	t.Run("link protocol matches allowed protocol list", func(t *testing.T) {
-		in := &model.Post{
-			Message: "[test](https://www.github.com)",
-		}
-		invalidURLs := p.getInvalidURLs(in)
-		assert.ElementsMatch(t, []string{}, invalidURLs)
-	})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			invalidURLs := p.getInvalidURLs(test.in)
+			assert.ElementsMatch(t, test.expectedURLs, invalidURLs)
+		})
+	}
+}
 
-	t.Run("link protocol invalid", func(t *testing.T) {
-		in := &model.Post{
-			Message: "[test](s3://www.github.com)",
-		}
-		invalidURLs := p.getInvalidURLs(in)
-		expectedURLs := []string{"s3"}
-		assert.ElementsMatch(t, expectedURLs, invalidURLs)
-	})
+func TestGetInvalidURLsWithoutPlainLinks(t *testing.T) {
+	p := newTestPlugin(false, "http,https,mailto", "http,https,mailto")
 
-	t.Run("multiple link protocols invalid", func(t *testing.T) {
-		in := &model.Post{
-			Message: "[test](s3://www.github.com) [test](s4://www.github.com) [test](s3://www.github.com)",
-		}
-		invalidURLs := p.getInvalidURLs(in)
-		expectedURLs := []string{"s3", "s4"}
-		assert.ElementsMatch(t, expectedURLs, invalidURLs)
-	})
+	var tests = []struct {
+		name         string
+		in           *model.Post
+		expectedURLs []string
+	}{
+		{
+			name: "allows plain link with double slashes",
+			in: &model.Post{
+				Message: "tel://999999999",
+			},
+			expectedURLs: []string{},
+		},
+		{
+			name: "allows plain link without double slashes",
+			in: &model.Post{
+				Message: "tel:999999999",
+			},
+			expectedURLs: []string{},
+		},
+		{
+			name: "allows embedded link without double slashes",
+			in: &model.Post{
+				Message: "[+999999999](tel:+999999999)",
+			},
+			expectedURLs: []string{"tel"},
+		},
+		{
+			name: "allows embedded link without double slashes",
+			in: &model.Post{
+				Message: "[plugin@example.com](mailto:plugin@example.com)",
+			},
+			expectedURLs: []string{},
+		},
+		{
+			name: "allows embedded link with double slashes",
+			in: &model.Post{
+				Message: "[plugin@example.com](mailto://plugin@example.com)",
+			},
+			expectedURLs: []string{},
+		},
+	}
 
-	t.Run("invalid plain text link", func(t *testing.T) {
-		in := &model.Post{
-			Message: "s3://www.github.com [test](s4://www.github.com)",
-		}
-		invalidURLs := p.getInvalidURLs(in)
-		expectedURLs := []string{"s3", "s4"}
-		assert.ElementsMatch(t, expectedURLs, invalidURLs)
-	})
-
-	t.Run("message with valid and invalid links", func(t *testing.T) {
-		in := &model.Post{
-			Message: "https://www.github.com [test](s3://www.github.com)",
-		}
-		invalidURLs := p.getInvalidURLs(in)
-		expectedURLs := []string{"s3"}
-		assert.ElementsMatch(t, expectedURLs, invalidURLs)
-	})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			invalidURLs := p.getInvalidURLs(test.in)
+			assert.ElementsMatch(t, test.expectedURLs, invalidURLs)
+		})
+	}
 }
