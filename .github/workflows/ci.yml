@@ -4,9 +4,7 @@ on:
     - cron: "0 0 * * *"
   push:
     branches:
-      - master
-    tags:
-      - "v*"
+      - main
   pull_request:
 
 permissions:
