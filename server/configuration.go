@@ -28,6 +28,7 @@ type configuration struct {
 	AllowedProtocolListPlainText string
 	CreatePostWarningMessage     string
 	EditPostWarningMessage       string
+	RewriteProtocolList          string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -104,6 +105,8 @@ func (p *Plugin) OnConfigurationChange() error {
 		return err
 	}
 	p.allowedProtocolsRegexPlainText = regexPlainText
+
+	p.rewriteProtocolList = strings.Split(configuration.RewriteProtocolList, ",")
 
 	return nil
 }

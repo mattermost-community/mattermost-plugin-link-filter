@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetInvalidURLsWithPlainLinks(t *testing.T) {
-	p := newTestPlugin(true, "http,https,mailto", "http,https,mailto")
+	p := newTestPlugin(true, "http,https,mailto", "http,https,mailto", "")
 
 	var tests = []struct {
 		name         string
@@ -90,14 +90,15 @@ func TestGetInvalidURLsWithPlainLinks(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			invalidURLs := p.getInvalidURLs(test.in)
+			detectedURLs := p.extractURLs(test.in)
+			invalidURLs := p.getInvalidURLs(detectedURLs, test.in)
 			assert.ElementsMatch(t, test.expectedURLs, invalidURLs)
 		})
 	}
 }
 
 func TestGetInvalidURLsWithoutPlainLinks(t *testing.T) {
-	p := newTestPlugin(false, "http,https,mailto", "http,https,mailto")
+	p := newTestPlugin(false, "http,https,mailto", "http,https,mailto", "")
 
 	var tests = []struct {
 		name         string
@@ -143,7 +144,8 @@ func TestGetInvalidURLsWithoutPlainLinks(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			invalidURLs := p.getInvalidURLs(test.in)
+			detectedURLs := p.extractURLs(test.in)
+			invalidURLs := p.getInvalidURLs(detectedURLs, test.in)
 			assert.ElementsMatch(t, test.expectedURLs, invalidURLs)
 		})
 	}

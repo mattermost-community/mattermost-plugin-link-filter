@@ -7,12 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newTestPlugin(rejectPlainLinks bool, allowedProtocolList, allowedProtocolListPlainText string) *Plugin {
+func newTestPlugin(rejectPlainLinks bool, allowedProtocolList, allowedProtocolListPlainText, rewriteProtocolList string) *Plugin {
 	p := Plugin{
 		configuration: &configuration{
 			RejectPlainLinks:             rejectPlainLinks,
 			AllowedProtocolListLink:      allowedProtocolList,
 			AllowedProtocolListPlainText: allowedProtocolListPlainText,
+			RewriteProtocolList:          rewriteProtocolList,
 		},
 	}
 	p.plainLinkRegex = regexp.MustCompile(PlainLinkRegexString)
@@ -27,7 +28,7 @@ func TestWordListToRegex(t *testing.T) {
 	schemes := "https,http,mailto"
 	schemesWithSpaces := "https, http, mailto"
 
-	p := newTestPlugin(true, schemes, schemes)
+	p := newTestPlugin(true, schemes, schemes, "")
 
 	t.Run("Build Regex", func(t *testing.T) {
 		regexStr := wordListToRegex(p.getConfiguration().AllowedProtocolListLink)
@@ -35,7 +36,7 @@ func TestWordListToRegex(t *testing.T) {
 		assert.Equal(t, regexStr, `(?mi)\b(https|http|mailto)\b`)
 	})
 
-	p2 := newTestPlugin(true, schemesWithSpaces, schemesWithSpaces)
+	p2 := newTestPlugin(true, schemesWithSpaces, schemesWithSpaces, "")
 
 	t.Run("Build Regex with extra space", func(t *testing.T) {
 		regexStr := wordListToRegex(p2.getConfiguration().AllowedProtocolListLink)

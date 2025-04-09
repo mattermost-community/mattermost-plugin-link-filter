@@ -3,12 +3,22 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
+
+type detectedURL struct {
+	protocol     string
+	host         string
+	originalText string
+	isPlainText  bool
+	positions    []int
+	rewritten    bool
+}
 
 type Plugin struct {
 	plugin.MattermostPlugin
@@ -23,6 +33,7 @@ type Plugin struct {
 	plainLinkRegex                 *regexp.Regexp
 	allowedProtocolsRegexLink      *regexp.Regexp
 	allowedProtocolsRegexPlainText *regexp.Regexp
+	rewriteProtocolList            []string
 }
 
 const (
@@ -32,72 +43,87 @@ const (
 
 	// Following regex would match links
 	// e.g. https://github.com
-	PlainLinkRegexString = `(?P<protocol>\w+):[//]?(?P<host>[^\n)]+)?`
+	PlainLinkRegexString = `(?P<protocol>\w+):[//]?(?P<host>[^\n\s)]+)?`
 
 	// Message to be displayed when a post is rejected
 	InvalidURLSchemeMessage = "\nFollowing URL Scheme is not allowed: `%s`"
 )
 
 func (p *Plugin) OnActivate() error {
-	embeddedLinkRegex := regexp.MustCompile(EmbeddedLinkRegexString)
+	p.embeddedLinkRegex = regexp.MustCompile(EmbeddedLinkRegexString)
+	p.plainLinkRegex = regexp.MustCompile(PlainLinkRegexString)
 
-	plainLinkRegex := regexp.MustCompile(PlainLinkRegexString)
-
-	p.embeddedLinkRegex = embeddedLinkRegex
-	p.plainLinkRegex = plainLinkRegex
 	return nil
 }
 
-func (p *Plugin) getInvalidURLs(post *model.Post) []string {
+func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
+	postText := []byte(post.Message)
+	detectedURLs := []*detectedURL{}
+	embeddedLinks := p.embeddedLinkRegex.FindAllSubmatchIndex(postText, -1)
+
+	// loc contains the index of relevant groups
+	// [0-1] start and end position of entire match
+	// [2-3] start and end position of "scheme" or "text"
+	// [4-5] start and end position of "scheme" or "host"
+	// [6-7] start and end position of "host"
+
+	for _, loc := range embeddedLinks {
+		p.API.LogError("loc1", "loc", loc)
+		detectedURLs = append(detectedURLs, &detectedURL{
+			protocol:     string(postText[loc[4]:loc[5]]),
+			host:         string(postText[loc[6]:loc[7]]),
+			originalText: string(postText[loc[0]:loc[1]]),
+			positions:    loc,
+		})
+	}
+
+	plainLinks := p.plainLinkRegex.FindAllSubmatchIndex(postText, -1)
+	for _, loc := range plainLinks {
+		p.API.LogError("loc2", "loc", loc)
+		detectedURLs = append(detectedURLs, &detectedURL{
+			protocol:     string(postText[loc[2]:loc[3]]),
+			host:         string(postText[loc[4]:loc[5]]),
+			originalText: string(postText[loc[0]:loc[1]]),
+			positions:    loc,
+		})
+	}
+
+	return detectedURLs
+}
+
+func (p *Plugin) getInvalidURLs(detectedURLs []*detectedURL, post *model.Post) []string {
 	configuration := p.getConfiguration()
 
-	postText := []byte(post.Message)
-	detectedURLs := p.embeddedLinkRegex.FindAllSubmatchIndex(postText, -1)
-	if configuration.RejectPlainLinks {
-		plainLinks := p.plainLinkRegex.FindAllSubmatchIndex(postText, -1)
-		detectedURLs = append(detectedURLs, plainLinks...)
-	}
 	var invalidURLProtocols []string
-	set := make(map[string]bool)
+	set := make(map[string]struct{})
 
-	for _, loc := range detectedURLs {
-		// loc contains the index of relevant groups
-		// [0-1] start and end position of regex
-		// [2-3] start and end position of "text"
-		// [4-5] start and end position of "protocol"
-		// [6-7] start and end position of "host"
-		protocolStartIndex := loc[4]
-		procolEndIndex := loc[5]
-		isPlainText := false
+	p.API.LogError("detectedURLs", "detectedURLs", detectedURLs)
+	for _, u := range detectedURLs {
 
-		// The case when detected url has length 6 i.e., the url is plain link
-		// then the detected url will have no "text" and
-		// start and end position of "protocol" will be 2-3 and not 4-5
-		if len(loc) == 6 {
-			protocolStartIndex = loc[2]
-			procolEndIndex = loc[3]
-			isPlainText = true
+		// Skip if the URL has already been rewritten
+		if u.rewritten {
+			continue
 		}
 
-		protocol := string(postText[protocolStartIndex:procolEndIndex])
-		_, ok := set[protocol]
-		if !ok && !isPlainText && (len(configuration.AllowedProtocolListLink) == 0 || !p.allowedProtocolsRegexLink.MatchString(protocol)) {
-			invalidURLProtocols = append(invalidURLProtocols, protocol)
-			set[protocol] = true
+		// If protocol is banned
+		_, ok := set[u.protocol]
+		if !ok && (len(configuration.AllowedProtocolListLink) == 0 || !p.allowedProtocolsRegexLink.MatchString(u.protocol)) {
+			invalidURLProtocols = append(invalidURLProtocols, u.protocol)
+			set[u.protocol] = struct{}{}
 		}
-		if !ok && isPlainText && (len(configuration.AllowedProtocolListPlainText) == 0 || !p.allowedProtocolsRegexPlainText.MatchString(protocol)) {
-			invalidURLProtocols = append(invalidURLProtocols, protocol)
-			set[protocol] = true
+		if !ok && configuration.RejectPlainLinks && u.isPlainText && (len(configuration.AllowedProtocolListPlainText) == 0 || !p.allowedProtocolsRegexPlainText.MatchString(u.protocol)) {
+			invalidURLProtocols = append(invalidURLProtocols, u.protocol)
+			set[u.protocol] = struct{}{}
 		}
 	}
 
 	return invalidURLProtocols
 }
 
-func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string) {
+func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdit bool) (*model.Post, string) {
 	configuration := p.getConfiguration()
 
-	invalidURLProtocols := p.getInvalidURLs(post)
+	invalidURLProtocols := p.getInvalidURLs(detectedURLs, post)
 	if len(invalidURLProtocols) == 0 {
 		return post, ""
 	}
@@ -115,14 +141,39 @@ func (p *Plugin) FilterPost(post *model.Post, isEdit bool) (*model.Post, string)
 	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 }
 
+func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) string {
+	postText := []byte(post.Message)
+	delta := 0
+	for _, u := range detectedURLs {
+		if u.isPlainText && slices.Contains(p.rewriteProtocolList, u.protocol) {
+			u.rewritten = true
+			p.API.LogError("rewrite", "protocol", u.protocol, "u", u)
+			p.API.LogError("postText", "originalText", string(postText))
+
+			backticked := "`" + u.originalText + "`"
+
+			// Why not just use `bytes.Replace`?
+			// Replacing the text would not work in this case because the URL could be in the same message several times. This way
+			// we ensure that we maintain the original message format by cutting the captured link and replacing it with the backticked
+			// version.
+			postText = append(postText[0:u.positions[0]+delta], append([]byte(backticked), postText[u.positions[1]+delta:]...)...)
+			delta += 2 // The two backticks we add to the original text
+		}
+	}
+
+	p.API.LogError("postText", "postText", string(postText))
+
+	return string(postText)
+}
+
 func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*model.Post, string) {
-	return p.FilterPost(post, false)
+	detectedURLs := p.extractURLs(post)
+	post.Message = p.rewriteLinks(detectedURLs, post)
+	return p.FilterPost(detectedURLs, post, false)
 }
 
 func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, oldPost *model.Post) (*model.Post, string) {
-	post, err := p.FilterPost(newPost, true)
-	if err != "" {
-		return oldPost, err
-	}
-	return post, err
+	detectedURLs := p.extractURLs(newPost)
+	newPost.Message = p.rewriteLinks(detectedURLs, newPost)
+	return p.FilterPost(detectedURLs, newPost, true)
 }
