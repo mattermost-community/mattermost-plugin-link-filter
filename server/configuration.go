@@ -110,7 +110,9 @@ func (p *Plugin) initConfiguration(configuration *configuration) error {
 	}
 	p.allowedProtocolsRegexPlainText = regexPlainText
 
-	p.rewriteProtocolList = strings.Split(configuration.RewriteProtocolList, ",")
+	for _, scheme := range strings.Split(configuration.RewriteProtocolList, ",") {
+		p.rewriteProtocolList = append(p.rewriteProtocolList, strings.TrimSpace(scheme))
+	}
 
 	return nil
 }
