@@ -90,6 +90,10 @@ func (p *Plugin) OnConfigurationChange() error {
 
 	p.setConfiguration(configuration)
 
+	return p.initConfiguration(configuration)
+}
+
+func (p *Plugin) initConfiguration(configuration *configuration) error {
 	// Addind space around the words (Link)
 	regexStringLink := wordListToRegex(configuration.AllowedProtocolListLink)
 	regexLink, err := regexp.Compile(regexStringLink)

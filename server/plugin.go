@@ -39,23 +39,28 @@ type Plugin struct {
 const (
 	// Following regex would match links embedded with texts in markdown
 	// e.g. [test](https://www.github.com)
-	EmbeddedLinkRegexString = `\[(?P<text>.*?)\]\((?P<protocol>\w+):[//]?(?P<host>[^\n)]+)?\)`
+	EmbeddedLinkRegexString = `\[(?P<text>.*?)\]\((?P<protocol>\w+):(?://|)(?P<host>[^\n\s)]+)\)`
 
 	// Following regex would match links
 	// e.g. https://github.com
-	PlainLinkRegexString = `(?P<protocol>\w+):[//]?(?P<host>[^\n\s)]+)?`
+	PlainLinkRegexString = `(?P<protocol>\w+):(?://|)(?P<host>[^\n\s)]+)`
 
 	// Message to be displayed when a post is rejected
 	InvalidURLSchemeMessage = "\nFollowing URL Scheme is not allowed: `%s`"
 )
 
 func (p *Plugin) OnActivate() error {
-	p.embeddedLinkRegex = regexp.MustCompile(EmbeddedLinkRegexString)
-	p.plainLinkRegex = regexp.MustCompile(PlainLinkRegexString)
+	p.initRegexes()
 
 	return nil
 }
 
+func (p *Plugin) initRegexes() {
+	p.embeddedLinkRegex = regexp.MustCompile(EmbeddedLinkRegexString)
+	p.plainLinkRegex = regexp.MustCompile(PlainLinkRegexString)
+}
+
+// extractURLs extracts the URLs from the post using regular expressions.
 func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
 	postText := []byte(post.Message)
 	detectedURLs := []*detectedURL{}
@@ -63,12 +68,11 @@ func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
 
 	// loc contains the index of relevant groups
 	// [0-1] start and end position of entire match
-	// [2-3] start and end position of "scheme" or "text"
-	// [4-5] start and end position of "scheme" or "host"
-	// [6-7] start and end position of "host"
+	// [2-3] start and end position of "scheme" (plain) or "text" (markdown)
+	// [4-5] start and end position of "scheme" (markdown) or "host" (plain)
+	// [6-7] start and end position of "host" (markdown)
 
 	for _, loc := range embeddedLinks {
-		p.API.LogError("loc1", "loc", loc)
 		detectedURLs = append(detectedURLs, &detectedURL{
 			protocol:     string(postText[loc[4]:loc[5]]),
 			host:         string(postText[loc[6]:loc[7]]),
@@ -79,39 +83,43 @@ func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
 
 	plainLinks := p.plainLinkRegex.FindAllSubmatchIndex(postText, -1)
 	for _, loc := range plainLinks {
-		p.API.LogError("loc2", "loc", loc)
+		// Skip if the URL starts with a parenthesis, which should be captured by the embedded link regex
+		if loc[0] > 0 && string(postText[loc[0]-1]) == "(" {
+			continue
+		}
+
 		detectedURLs = append(detectedURLs, &detectedURL{
 			protocol:     string(postText[loc[2]:loc[3]]),
 			host:         string(postText[loc[4]:loc[5]]),
 			originalText: string(postText[loc[0]:loc[1]]),
 			positions:    loc,
+			isPlainText:  true,
 		})
 	}
 
 	return detectedURLs
 }
 
-func (p *Plugin) getInvalidURLs(detectedURLs []*detectedURL, post *model.Post) []string {
+// getInvalidProtocols returns the protocols that are not allowd in the post from the extracted URLs and the
+// plugin configuration.
+func (p *Plugin) getInvalidProtocols(detectedURLs []*detectedURL, _ *model.Post) []string {
 	configuration := p.getConfiguration()
 
 	var invalidURLProtocols []string
 	set := make(map[string]struct{})
 
-	p.API.LogError("detectedURLs", "detectedURLs", detectedURLs)
 	for _, u := range detectedURLs {
-
 		// Skip if the URL has already been rewritten
 		if u.rewritten {
 			continue
 		}
 
 		// If protocol is banned
-		_, ok := set[u.protocol]
-		if !ok && (len(configuration.AllowedProtocolListLink) == 0 || !p.allowedProtocolsRegexLink.MatchString(u.protocol)) {
+		_, alreadyPassed := set[u.protocol]
+		if !alreadyPassed && !u.isPlainText && (len(configuration.AllowedProtocolListLink) == 0 || !p.allowedProtocolsRegexLink.MatchString(u.protocol)) {
 			invalidURLProtocols = append(invalidURLProtocols, u.protocol)
 			set[u.protocol] = struct{}{}
-		}
-		if !ok && configuration.RejectPlainLinks && u.isPlainText && (len(configuration.AllowedProtocolListPlainText) == 0 || !p.allowedProtocolsRegexPlainText.MatchString(u.protocol)) {
+		} else if !alreadyPassed && configuration.RejectPlainLinks && u.isPlainText && (len(configuration.AllowedProtocolListPlainText) == 0 || !p.allowedProtocolsRegexPlainText.MatchString(u.protocol)) {
 			invalidURLProtocols = append(invalidURLProtocols, u.protocol)
 			set[u.protocol] = struct{}{}
 		}
@@ -120,10 +128,12 @@ func (p *Plugin) getInvalidURLs(detectedURLs []*detectedURL, post *model.Post) [
 	return invalidURLProtocols
 }
 
+// FilterPost filters the post based on the plugin configuration.
+// If the post is rejected, it sends an ephemeral post to the user and returns the error message with a nil post.
 func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdit bool) (*model.Post, string) {
 	configuration := p.getConfiguration()
 
-	invalidURLProtocols := p.getInvalidURLs(detectedURLs, post)
+	invalidURLProtocols := p.getInvalidProtocols(detectedURLs, post)
 	if len(invalidURLProtocols) == 0 {
 		return post, ""
 	}
@@ -141,14 +151,14 @@ func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdi
 	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 }
 
+// rewriteLinks rewrites the links in the post based on the plugin configuration. Finds which plain links are allowed to be rewritten
+// and rewrites them to backticks to prevent autolinking.
 func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) string {
 	postText := []byte(post.Message)
 	delta := 0
-	for _, u := range detectedURLs {
+	for i, u := range detectedURLs {
 		if u.isPlainText && slices.Contains(p.rewriteProtocolList, u.protocol) {
-			u.rewritten = true
-			p.API.LogError("rewrite", "protocol", u.protocol, "u", u)
-			p.API.LogError("postText", "originalText", string(postText))
+			detectedURLs[i].rewritten = true
 
 			backticked := "`" + u.originalText + "`"
 
@@ -161,8 +171,6 @@ func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) str
 		}
 	}
 
-	p.API.LogError("postText", "postText", string(postText))
-
 	return string(postText)
 }
 
@@ -172,7 +180,7 @@ func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*mode
 	return p.FilterPost(detectedURLs, post, false)
 }
 
-func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, oldPost *model.Post) (*model.Post, string) {
+func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, _ *model.Post) (*model.Post, string) {
 	detectedURLs := p.extractURLs(newPost)
 	newPost.Message = p.rewriteLinks(detectedURLs, newPost)
 	return p.FilterPost(detectedURLs, newPost, true)
