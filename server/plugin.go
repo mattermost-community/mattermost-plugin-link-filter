@@ -130,12 +130,12 @@ func (p *Plugin) getInvalidProtocols(detectedURLs []*detectedURL, _ *model.Post)
 
 // FilterPost filters the post based on the plugin configuration.
 // If the post is rejected, it sends an ephemeral post to the user and returns the error message with a nil post.
-func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdit bool) (*model.Post, string) {
+func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdit bool) string {
 	configuration := p.getConfiguration()
 
 	invalidURLProtocols := p.getInvalidProtocols(detectedURLs, post)
 	if len(invalidURLProtocols) == 0 {
-		return post, ""
+		return ""
 	}
 
 	WarningMessage := configuration.CreatePostWarningMessage
@@ -148,7 +148,8 @@ func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdi
 		Message:   WarningMessage,
 		RootId:    post.RootId,
 	})
-	return nil, fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
+
+	return fmt.Sprintf("Schemes not allowed: %s", strings.Join(invalidURLProtocols, ", "))
 }
 
 // rewriteLinks rewrites the links in the post based on the plugin configuration. Finds which plain links are allowed to be rewritten
@@ -177,11 +178,21 @@ func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) str
 func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*model.Post, string) {
 	detectedURLs := p.extractURLs(post)
 	post.Message = p.rewriteLinks(detectedURLs, post)
-	return p.FilterPost(detectedURLs, post, false)
+
+	if errMessage := p.FilterPost(detectedURLs, post, false); errMessage != "" {
+		return nil, errMessage
+	}
+
+	return post, ""
 }
 
-func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, _ *model.Post) (*model.Post, string) {
+func (p *Plugin) MessageWillBeUpdated(_ *plugin.Context, newPost *model.Post, originalPost *model.Post) (*model.Post, string) {
 	detectedURLs := p.extractURLs(newPost)
 	newPost.Message = p.rewriteLinks(detectedURLs, newPost)
-	return p.FilterPost(detectedURLs, newPost, true)
+
+	if errMessage := p.FilterPost(detectedURLs, newPost, true); errMessage != "" {
+		return nil, errMessage
+	}
+
+	return newPost, ""
 }

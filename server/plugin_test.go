@@ -461,19 +461,12 @@ func TestFilterPost(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			mockAPI.sentEphemeralPost = nil // Reset for each test
 			detectedURLs := p.extractURLs(test.in)
-			post, errString := p.FilterPost(detectedURLs, test.in, test.isEdit)
+			errString := p.FilterPost(detectedURLs, test.in, test.isEdit)
 
 			if test.expectedPost == nil {
-				require.Nil(t, post)
 				assert.Equal(t, test.expectedError, errString)
 			} else {
 				require.Empty(t, errString)
-				assert.Equal(
-					t,
-					test.expectedPost.Message,
-					post.Message)
-				assert.Equal(t, test.expectedPost.UserId, post.UserId)
-				assert.Equal(t, test.expectedPost.ChannelId, post.ChannelId)
 			}
 
 			if test.checkEphemeral != nil {
