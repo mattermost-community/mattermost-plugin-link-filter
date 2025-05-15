@@ -155,24 +155,23 @@ func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdi
 // rewriteLinks rewrites the links in the post based on the plugin configuration. Finds which plain links are allowed to be rewritten
 // and rewrites them to backticks to prevent autolinking.
 func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) string {
-	postText := []byte(post.Message)
-	delta := 0
+	var builder strings.Builder
+	lastIndex := 0
 	for i, u := range detectedURLs {
 		if u.isPlainText && slices.Contains(p.rewriteProtocolList, u.protocol) {
 			detectedURLs[i].rewritten = true
-
 			backticked := "`" + u.originalText + "`"
-
-			// Why not just use `bytes.Replace`?
-			// Replacing the text would not work in this case because the URL could be in the same message several times. This way
-			// we ensure that we maintain the original message format by cutting the captured link and replacing it with the backticked
-			// version.
-			postText = append(postText[0:u.positions[0]+delta], append([]byte(backticked), postText[u.positions[1]+delta:]...)...)
-			delta += 2 // The two backticks we add to the original text
+			// Append the text before the detected URL
+			builder.WriteString(post.Message[lastIndex:u.positions[0]])
+			// Append the backticked URL
+			builder.WriteString(backticked)
+			// Update the last index to the end of the current URL
+			lastIndex = u.positions[1]
 		}
 	}
-
-	return string(postText)
+	// Append the remaining text after the last URL
+	builder.WriteString(post.Message[lastIndex:])
+	return builder.String()
 }
 
 func (p *Plugin) MessageWillBePosted(_ *plugin.Context, post *model.Post) (*model.Post, string) {
