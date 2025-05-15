@@ -649,12 +649,12 @@ func TestMessageHooks(t *testing.T) {
 		{
 			name: "rewrites tel protocol in plain link",
 			post: &model.Post{
-				Message:   "Call me at tel://1234567890",
+				Message:   "Call me at tel://1234567890, please",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "Call me at `tel://1234567890`",
+				Message:   "Call me at `tel://1234567890`, please",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
@@ -689,6 +689,57 @@ func TestMessageHooks(t *testing.T) {
 			},
 			expectedPost: &model.Post{
 				Message:   "`tel:123456` [test](https://example.com) [test2](aria2://999) `ftp://example.com`",
+				UserId:    "user1",
+				ChannelId: "channel1",
+			},
+			expectedError: "",
+			checkEphemeral: func(t *testing.T, p *model.Post) {
+				assert.Nil(t, p, "No ephemeral post should be sent for rewritten posts")
+			},
+		},
+		{
+			name: "link with single backtick",
+			post: &model.Post{
+				Message:   "tel:123456`",
+				UserId:    "user1",
+				ChannelId: "channel1",
+			},
+			expectedPost: &model.Post{
+				Message:   "`tel:123456`",
+				UserId:    "user1",
+				ChannelId: "channel1",
+			},
+			expectedError: "",
+			checkEphemeral: func(t *testing.T, p *model.Post) {
+				assert.Nil(t, p, "No ephemeral post should be sent for rewritten posts")
+			},
+		},
+		{
+			name: "link with single backtick",
+			post: &model.Post{
+				Message:   "`tel:123456",
+				UserId:    "user1",
+				ChannelId: "channel1",
+			},
+			expectedPost: &model.Post{
+				Message:   "`tel:123456`",
+				UserId:    "user1",
+				ChannelId: "channel1",
+			},
+			expectedError: "",
+			checkEphemeral: func(t *testing.T, p *model.Post) {
+				assert.Nil(t, p, "No ephemeral post should be sent for rewritten posts")
+			},
+		},
+		{
+			name: "link with backticks",
+			post: &model.Post{
+				Message:   "`tel:123456`",
+				UserId:    "user1",
+				ChannelId: "channel1",
+			},
+			expectedPost: &model.Post{
+				Message:   "`tel:123456`",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
