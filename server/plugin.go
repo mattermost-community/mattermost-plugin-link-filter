@@ -104,7 +104,7 @@ func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
 
 // getInvalidProtocols returns the protocols that are not allowed in the post from the extracted URLs and the
 // plugin configuration.
-func (p *Plugin) getInvalidProtocols(detectedURLs []*detectedURL, post *model.Post) []string {
+func (p *Plugin) getInvalidProtocols(detectedURLs []*detectedURL, _ *model.Post) []string {
 	configuration := p.getConfiguration()
 
 	var invalidURLProtocols []string
@@ -178,10 +178,7 @@ func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) str
 		if u.isPlainText && slices.Contains(p.rewriteProtocolList, u.protocol) {
 			detectedURLs[i].rewritten = true
 			// Trim any leading "//" from the host part
-			host := u.host
-			if strings.HasPrefix(host, "//") {
-				host = host[2:]
-			}
+			host := strings.TrimPrefix(u.host, "//")
 
 			rewritten := fmt.Sprintf("%s(%s)", u.protocol, host)
 
