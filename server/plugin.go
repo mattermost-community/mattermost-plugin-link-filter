@@ -44,7 +44,8 @@ const (
 	// Following regex would match links
 	// e.g. https://github.com
 	// Note: Ensures we don't match trailing characters like commas in URLs
-	PlainLinkRegexString = `(?P<protocol>\w+):(?://|)(?P<host>[^\n\s),]+)`
+	// But preserves special characters like + in the URL
+	PlainLinkRegexString = `(?P<protocol>\w+):(?://|)(?P<host>[^\n\s),` + "`" + `]+)`
 
 	// Message to be displayed when a post is rejected
 	InvalidURLSchemeMessage = "\nFollowing URL Scheme is not allowed: `%s`"
@@ -63,37 +64,6 @@ func (p *Plugin) initRegexes() {
 
 // extractURLs extracts the URLs from the post using regular expressions.
 func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
-	message := post.Message
-
-	// Special cases: Different backtick patterns with protocols we care about
-
-	// Case 1: Fully backticked content like "`tel:123456`"
-	if strings.HasPrefix(message, "`") && strings.HasSuffix(message, "`") {
-		content := message[1 : len(message)-1]
-		for _, protocol := range p.rewriteProtocolList {
-			if strings.HasPrefix(content, protocol+":") {
-				// Already correctly backticked, no need to extract
-				return []*detectedURL{}
-			}
-		}
-	}
-
-	// Case 2: Message has backtick at end like "tel:123456`"
-	for _, protocol := range p.rewriteProtocolList {
-		if strings.HasPrefix(message, protocol+":") && strings.HasSuffix(message, "`") {
-			// Has backtick at end, will be handled by rewriteLinks
-			return []*detectedURL{}
-		}
-	}
-
-	// Case 3: Message has backtick at beginning like "`tel:123456"
-	for _, protocol := range p.rewriteProtocolList {
-		if strings.HasPrefix(message, "`"+protocol+":") {
-			// Has backtick at beginning, will be handled by rewriteLinks
-			return []*detectedURL{}
-		}
-	}
-
 	postText := []byte(post.Message)
 	detectedURLs := []*detectedURL{}
 	embeddedLinks := p.embeddedLinkRegex.FindAllSubmatchIndex(postText, -1)
@@ -137,43 +107,18 @@ func (p *Plugin) extractURLs(post *model.Post) []*detectedURL {
 func (p *Plugin) getInvalidProtocols(detectedURLs []*detectedURL, post *model.Post) []string {
 	configuration := p.getConfiguration()
 
-	// Special handling for backticked messages containing protocols in the rewrite list
-	msg := post.Message
-
-	// Case 1: Completely backticked content like "`tel:123456`"
-	if strings.HasPrefix(msg, "`") && strings.HasSuffix(msg, "`") {
-		// Extract content between backticks
-		content := msg[1 : len(msg)-1]
-		for _, protocol := range p.rewriteProtocolList {
-			if strings.HasPrefix(content, protocol+":") {
-				// This is a valid and already properly backticked protocol
-				return []string{}
-			}
-		}
-	}
-
-	// Case 2: Single backtick at the end like "tel:123456`"
-	for _, protocol := range p.rewriteProtocolList {
-		if strings.HasPrefix(msg, protocol+":") && strings.HasSuffix(msg, "`") {
-			// This is "tel:123456`" style
-			return []string{}
-		}
-	}
-
-	// Case 3: Single backtick at the beginning like "`tel:123456"
-	for _, protocol := range p.rewriteProtocolList {
-		if strings.HasPrefix(msg, "`"+protocol+":") {
-			// This is "`tel:123456" style
-			return []string{}
-		}
-	}
-
 	var invalidURLProtocols []string
 	set := make(map[string]struct{})
 
 	for _, u := range detectedURLs {
 		// Skip if the URL has already been rewritten
 		if u.rewritten {
+			continue
+		}
+
+		// If it's a rewritable protocol in plain text format, mark it valid
+		if u.isPlainText && slices.Contains(p.rewriteProtocolList, u.protocol) {
+			u.rewritten = true
 			continue
 		}
 
@@ -216,36 +161,13 @@ func (p *Plugin) FilterPost(detectedURLs []*detectedURL, post *model.Post, isEdi
 }
 
 // rewriteLinks rewrites the links in the post based on the plugin configuration. Finds which plain links are allowed to be rewritten
-// and rewrites them to backticks to prevent autolinking. Special care is taken for messages that already have backticks.
+// and rewrites them to prevent autolinking. Special care is taken for messages that already have backticks.
 func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) string {
 	msg := post.Message
 
 	// If we have no URLs to process, return the original message
 	if len(detectedURLs) == 0 {
 		return msg
-	}
-
-	// Messages that are already potentially backticked
-	if strings.HasPrefix(msg, "`") && strings.HasSuffix(msg, "`") {
-		// Message is already completely backticked
-		return msg
-	}
-
-	// Special case for URL with backtick only at the end or the beginning
-	for _, protocol := range p.rewriteProtocolList {
-		// Check for backtick at the end - "tel:123456`"
-		if strings.HasPrefix(msg, protocol+":") && strings.HasSuffix(msg, "`") {
-			// This is "tel:123456`" style - need to properly backtick it
-			content := msg[:len(msg)-1] // Remove trailing backtick
-			return "`" + content + "`"
-		}
-
-		// Check for backtick at the beginning - "`tel:123456"
-		if strings.HasPrefix(msg, "`"+protocol+":") {
-			// This is "`tel:123456" style - need to properly backtick it
-			content := msg[1:] // Remove leading backtick
-			return "`" + content + "`"
-		}
 	}
 
 	// Normal processing for everything else
@@ -255,12 +177,18 @@ func (p *Plugin) rewriteLinks(detectedURLs []*detectedURL, post *model.Post) str
 	for i, u := range detectedURLs {
 		if u.isPlainText && slices.Contains(p.rewriteProtocolList, u.protocol) {
 			detectedURLs[i].rewritten = true
-			backticked := "`" + u.originalText + "`"
+			// Trim any leading "//" from the host part
+			host := u.host
+			if strings.HasPrefix(host, "//") {
+				host = host[2:]
+			}
+
+			rewritten := fmt.Sprintf("%s(%s)", u.protocol, host)
 
 			// Append the text before the detected URL
 			builder.WriteString(msg[lastIndex:u.positions[0]])
-			// Append the backticked URL
-			builder.WriteString(backticked)
+			// Append the rewritten URL
+			builder.WriteString(rewritten)
 			// Update the last index to the end of the current URL
 			lastIndex = u.positions[1]
 		}

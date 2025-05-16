@@ -316,7 +316,7 @@ func TestRewriteLinks(t *testing.T) {
 		rewrittenMessage := p.rewriteLinks(detectedURLs, &model.Post{
 			Message: "tel://999999999",
 		})
-		assert.Equal(t, "`tel://999999999`", rewrittenMessage)
+		assert.Equal(t, "tel(999999999)", rewrittenMessage)
 		assert.True(t, detectedURLs[0].rewritten)
 	})
 
@@ -331,21 +331,21 @@ func TestRewriteLinks(t *testing.T) {
 				in: &model.Post{
 					Message: "tel://999999999",
 				},
-				expectedOutput: "`tel://999999999`",
+				expectedOutput: "tel(999999999)",
 			},
 			{
 				name: "rewrites ftp protocol in plain link",
 				in: &model.Post{
 					Message: "ftp://example.com",
 				},
-				expectedOutput: "`ftp://example.com`",
+				expectedOutput: "ftp(example.com)",
 			},
 			{
 				name: "rewrites multiple protocols in mixed content",
 				in: &model.Post{
 					Message: "tel:123456 [test](ftp://example.com) [test2](tel://999)",
 				},
-				expectedOutput: "`tel:123456` [test](ftp://example.com) [test2](tel://999)",
+				expectedOutput: "tel(123456) [test](ftp://example.com) [test2](tel://999)",
 			},
 			{
 				name: "doesn't rewrite non-listed protocols",
@@ -359,14 +359,42 @@ func TestRewriteLinks(t *testing.T) {
 				in: &model.Post{
 					Message: "tel:123456 tel:789012",
 				},
-				expectedOutput: "`tel:123456` `tel:789012`",
+				expectedOutput: "tel(123456) tel(789012)",
 			},
 			{
 				name: "multiple occurrences of the same protocol and value",
 				in: &model.Post{
 					Message: "tel:123456 tel:789012 tel:123456",
 				},
-				expectedOutput: "`tel:123456` `tel:789012` `tel:123456`",
+				expectedOutput: "tel(123456) tel(789012) tel(123456)",
+			},
+			{
+				name: "link with trailing backtick",
+				in: &model.Post{
+					Message: "tel:123456`",
+				},
+				expectedOutput: "tel(123456)`",
+			},
+			{
+				name: "link with leading backtick",
+				in: &model.Post{
+					Message: "`tel:123456",
+				},
+				expectedOutput: "`tel(123456)",
+			},
+			{
+				name: "link with trailing symbol",
+				in: &model.Post{
+					Message: "tel:123456+",
+				},
+				expectedOutput: "tel(123456+)",
+			},
+			{
+				name: "link with leading symbol",
+				in: &model.Post{
+					Message: "+tel:123456",
+				},
+				expectedOutput: "+tel(123456)",
 			},
 		}
 
@@ -547,6 +575,26 @@ func TestRegexPatterns(t *testing.T) {
 			expectMatch:  false,
 			expectGroups: map[string]string{},
 		},
+		{
+			name:        "plain link with trailing backtick",
+			input:       "tel:1234`",
+			regex:       plainRegex,
+			expectMatch: true,
+			expectGroups: map[string]string{
+				"protocol": "tel",
+				"host":     "1234",
+			},
+		},
+		{
+			name:        "plain link with trailing symbol",
+			input:       "tel:1234+",
+			regex:       plainRegex,
+			expectMatch: true,
+			expectGroups: map[string]string{
+				"protocol": "tel",
+				"host":     "1234+",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -654,7 +702,7 @@ func TestMessageHooks(t *testing.T) {
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "Call me at `tel://1234567890`, please",
+				Message:   "Call me at tel(1234567890), please",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
@@ -671,7 +719,7 @@ func TestMessageHooks(t *testing.T) {
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "Download from `ftp://example.com/file.txt`",
+				Message:   "Download from ftp(example.com/file.txt)",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
@@ -688,7 +736,7 @@ func TestMessageHooks(t *testing.T) {
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "`tel:123456` [test](https://example.com) [test2](aria2://999) `ftp://example.com`",
+				Message:   "tel(123456) [test](https://example.com) [test2](aria2://999) ftp(example.com)",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
@@ -705,7 +753,7 @@ func TestMessageHooks(t *testing.T) {
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "`tel:123456`",
+				Message:   "tel(123456)`",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
@@ -722,7 +770,7 @@ func TestMessageHooks(t *testing.T) {
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "`tel:123456`",
+				Message:   "`tel(123456)",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
@@ -739,7 +787,7 @@ func TestMessageHooks(t *testing.T) {
 				ChannelId: "channel1",
 			},
 			expectedPost: &model.Post{
-				Message:   "`tel:123456`",
+				Message:   "`tel(123456)`",
 				UserId:    "user1",
 				ChannelId: "channel1",
 			},
