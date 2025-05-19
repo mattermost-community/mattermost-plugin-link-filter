@@ -28,6 +28,7 @@ type configuration struct {
 	AllowedProtocolListPlainText string
 	CreatePostWarningMessage     string
 	EditPostWarningMessage       string
+	RewriteProtocolList          string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -89,6 +90,10 @@ func (p *Plugin) OnConfigurationChange() error {
 
 	p.setConfiguration(configuration)
 
+	return p.initConfiguration(configuration)
+}
+
+func (p *Plugin) initConfiguration(configuration *configuration) error {
 	// Addind space around the words (Link)
 	regexStringLink := wordListToRegex(configuration.AllowedProtocolListLink)
 	regexLink, err := regexp.Compile(regexStringLink)
@@ -104,6 +109,10 @@ func (p *Plugin) OnConfigurationChange() error {
 		return err
 	}
 	p.allowedProtocolsRegexPlainText = regexPlainText
+
+	for _, scheme := range strings.Split(configuration.RewriteProtocolList, ",") {
+		p.rewriteProtocolList = append(p.rewriteProtocolList, strings.TrimSpace(scheme))
+	}
 
 	return nil
 }

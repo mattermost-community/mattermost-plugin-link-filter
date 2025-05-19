@@ -50,6 +50,14 @@
         "help_text": "The protocols to allow in plain text, separated by commas. Capitalization and punctuation insensitive.",
         "placeholder": "E.g., http, https, mailto, mattermost",
         "default": "http,https,mailto,mattermost"
+      },
+      {
+        "key": "RewriteProtocolList",
+        "display_name": "Rewrite Protocols List:",
+        "type": "text",
+        "help_text": "The protocols to rewrite, separated by commas. Capitalization and punctuation insensitive. Adding a protocol here will rewrite it to prevent a link from being created. Example: tel:1234 would be rewritten to tel(1234). **Protocols listed here are considered allowed for plain text links.**",
+        "placeholder": "E.g., tel,ftp",
+        "default": ""
       }
     ],
     "header": "",
