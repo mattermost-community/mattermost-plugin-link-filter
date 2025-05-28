@@ -7,5 +7,5 @@ var manifest = struct {
 	Version string
 }{
 	ID:      "mattermost-plugin-link-filter",
-	Version: "1.0.8",
+	Version: "1.1.0",
 }
